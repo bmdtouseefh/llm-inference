@@ -1,0 +1,9 @@
+# Local object directories (The big 'binaries' folder)
+.terraform/
+
+# Distributed planetary state (Locks)
+.terraform.lock.hcl
+
+# State files (CONTAINS SECRETS - NEVER COMMIT THESE)
+*.tfstate
+*.tfstate.*

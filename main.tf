@@ -45,7 +45,7 @@ resource "aws_security_group" "ollama_sg" {
 
 resource "aws_instance" "ollama_server" {
   ami           = "ami-0c6b386534e3e1534"
-  instance_type = "g6.xlarge" 
+  instance_type = "g6.xlarge" #"t3a.xlarge"#for cpu
   key_name      = aws_key_pair.deployer.key_name
 
   # Attach the firewall we made in Step 3
@@ -70,12 +70,23 @@ resource "aws_instance" "ollama_server" {
   # The Startup Script
   user_data = <<-EOF
     #!/bin/bash
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    source $HOME/.local/bin/env
-    uv venv --python 3.12 --seed --managed-python
-    source .venv/bin/activate
-    uv pip install vllm
-    vllm serve "Qwen/Qwen3.5-9B"
+    
+    systemctl enable docker
+    systemctl start docker
+
+    docker run -d \
+      --gpus=all \
+      -v ollama_data:/root/.ollama \
+      -p 127.0.0.1:11434:11434 \
+      --name ollama \
+      --restart always \
+      ollama/ollama
+
+    #CPU only
+    # docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+
+    sleep 10
+    docker exec ollama ollama pull qwen3.5:27b-q4_K_M > /home/ubuntu/logs/ollama.log 2>&1
   EOF
 
 
@@ -86,7 +97,7 @@ resource "aws_instance" "ollama_server" {
 }
 
 output "connection_command" {
-  value = "ssh -i ~/.ssh/ollama_aws -N -L 8000:localhost:8000 ubuntu@${aws_instance.ollama_server.public_ip}"
+  value = "ssh -i ~/.ssh/ollama_aws -N -L 11434:localhost:11434 ubuntu@${aws_instance.ollama_server.public_ip}"
 }
 
 output "connection" {

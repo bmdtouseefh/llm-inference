@@ -70,10 +70,15 @@ resource "aws_instance" "ollama_server" {
   # The Startup Script
   user_data = <<-EOF
     #!/bin/bash
-    
-    pip install vllm
-    vllm serve "unsloth/Qwen3.5-9B-GGUF" &
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    source $HOME/.local/bin/env
+    uv venv --python 3.12 --seed --managed-python
+    source .venv/bin/activate
+    uv pip install vllm
+    vllm serve "Qwen/Qwen3.5-9B"
   EOF
+
+
 
   tags = {
     Name = "Ollama-GPU-Server"
@@ -84,7 +89,6 @@ output "connection_command" {
   value = "ssh -i ~/.ssh/ollama_aws -N -L 8000:localhost:8000 ubuntu@${aws_instance.ollama_server.public_ip}"
 }
 
-output "check_logs_command" {
-  value = "ssh -i ~/.ssh/ollama_aws ubuntu@${aws_instance.ollama_server.public_ip} 'tail -f /home/ubuntu/vllm.log'"
-  description = "Run this in a second terminal to watch vLLM install and download the model!"
+output "connection" {
+  value = "ssh -i ~/.ssh/ollama_aws ubuntu@${aws_instance.ollama_server.public_ip}"
 }
